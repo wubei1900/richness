@@ -1,0 +1,8 @@
+/*
+*postcss css配置
+*/
+
+:root {
+    --rise-color: red;
+    --fall-color: green;
+}
