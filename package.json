@@ -36,14 +36,20 @@
       ]
     },
     "mac": {
-      "icon": "dist/icons/icon.icns"
+      "icon": "dist/icons/icon.icns",
+      "artifactName": "${productName}_setup_${version}.${ext}"
     },
     "win": {
       "icon": "dist/icons/icon.ico",
-      "target": ["nsis", "zip"]
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "artifactName": "${productName}_setup_${version}.${ext}"
     },
     "linux": {
-      "icon": "dist/icons"
+      "icon": "dist/icons",
+      "artifactName": "${productName}_setup_${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
