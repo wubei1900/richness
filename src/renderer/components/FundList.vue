@@ -47,7 +47,10 @@
           </tr>
         </tbody>
         <tbody v-else class="empty">
-          <tr>
+          <tr v-if="loading">
+            <td>加载中...</td>
+          </tr>
+          <tr v-else>
             <td>未添加任何基金</td>
           </tr>
         </tbody>
@@ -65,15 +68,18 @@ export default {
       display: false,
       keyword: "",
       list: [],
-      searchlist: []
+      searchlist: [],
+      loading: true
     };
   },
   methods: {
     handleSyncFund() {
+      this.loading = true;
       const list = this.getItem();
       const datas = [];
       const func = index => {
         if (index >= list.length) {
+          this.loading = false;
           this.list = JSON.parse(JSON.stringify(datas));
           return Promise.resolve(datas);
         }
