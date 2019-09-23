@@ -1,7 +1,7 @@
  import JSONP from 'jsonp';
 
  var urls = {
-     getFund: 'http://fundgz.1234567.com.cn/js/',
+     getFundList: 'http://fundgz.1234567.com.cn/js/',
      fundSearch: 'http://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx'
  }
 
@@ -25,7 +25,7 @@
                  resolve(null);
              } else if (data.ErrCode) {
                  console.error(`jsonp -- ${url}：code(${data.ErrCode})：${data.ErrMsg} \n`);
-                 resolve(data);
+                 resolve(null);
              } else {
                  resolve(data);
              }
@@ -33,8 +33,8 @@
      });
  }
 
- export function getFund(id) {
-     const url = urls.getFund + id + '.js' + serializeQuery({});
+ export function getFundList(id) {
+     const url = urls.getFundList + id + '.js' + serializeQuery({});
      return jsonp(url, {
          name: 'jsonpgz'
      });

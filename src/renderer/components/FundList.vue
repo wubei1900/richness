@@ -75,25 +75,30 @@ export default {
     };
   },
   methods: {
-    handleSyncFund() {
+    async handleSyncFund() {
       this.loading = true;
-      const list = this.getItem();
-      const datas = [];
-      const func = index => {
-        if (index >= list.length) {
-          this.loading = false;
-          this.list = JSON.parse(JSON.stringify(datas));
-          return Promise.resolve(datas);
-        }
-        return Api.getFund(list[index]).then(
-          data => {
+      const datas = await this.getFundList();
+      this.loading = false;
+      this.list = JSON.parse(JSON.stringify(datas));
+    },
+    getFundList() {
+      return new Promise((resolve, reject) => {
+        const list = this.getItem();
+        const datas = [];
+        const func = async index => {
+          if (index >= list.length) {
+            resolve(datas);
+          }
+          try {
+            const data = await Api.getFundList(list[index]);
             data && datas.push(data);
-            return func(index + 1);
-          },
-          () => func(index + 1)
-        );
-      };
-      return func(0);
+            func(index + 1);
+          } catch (error) {
+            func(index + 1);
+          }
+        };
+        func(0);
+      });
     },
     async handleSearch() {
       const keyword = this.keyword;
