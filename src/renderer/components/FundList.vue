@@ -91,9 +91,10 @@ export default {
           }
           try {
             const data = await Api.getFundList(list[index]);
-            data && datas.push(data);
+            datas.push(data);
             func(index + 1);
           } catch (error) {
+            console.warn(error);
             func(index + 1);
           }
         };

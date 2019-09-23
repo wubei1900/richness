@@ -21,11 +21,9 @@
      return new Promise((resolve, reject) => {
          JSONP(url, params, (err, data) => {
              if (err) {
-                 console.error(`jsonp -- ${url}：${err} \n`);
-                 resolve(null);
+                 reject(`jsonp ${url}：${err} \n`);
              } else if (data.ErrCode) {
-                 console.error(`jsonp -- ${url}：code(${data.ErrCode})：${data.ErrMsg} \n`);
-                 resolve(null);
+                 reject(`jsonp ${url}：code(${data.ErrCode})，${data.ErrMsg} \n`);
              } else {
                  resolve(data);
              }
