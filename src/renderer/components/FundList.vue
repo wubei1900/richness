@@ -23,7 +23,11 @@
             <span class="disabled" v-else>已添加</span>
           </li>
         </ul>
-        <div v-else>{{`没有找到与${this.keyword}相关的内容`}}</div>
+        <div v-else class="notFound">
+          没有找到与
+          <font color="red">{{this.keyword}}</font>
+          相关的内容
+        </div>
       </div>
     </div>
     <section>
@@ -47,11 +51,9 @@
           </tr>
         </tbody>
         <tbody v-else class="empty">
-          <tr v-if="loading">
-            <td>加载中...</td>
-          </tr>
-          <tr v-else>
-            <td>未添加任何基金</td>
+          <tr>
+            <td v-if="loading">加载中...</td>
+            <td v-else>未添加任何基金</td>
           </tr>
         </tbody>
       </table>
@@ -231,6 +233,12 @@ export default {
   border-bottom: 1px solid #dce0e2;
   padding: 5px;
   height: 35px;
+}
+
+.list > .searchBox > .searchList .notFound {
+  height: 30px;
+  line-height: 30px;
+  text-align: center;
 }
 
 .list > .searchBox > .searchList li:hover {
