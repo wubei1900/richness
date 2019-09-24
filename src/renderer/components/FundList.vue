@@ -87,7 +87,7 @@ export default {
         const datas = [];
         const func = async index => {
           if (index >= list.length) {
-            resolve(datas);
+            return resolve(datas);
           }
           try {
             const data = await Api.getFundList(list[index]);
