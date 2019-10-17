@@ -129,7 +129,7 @@ export default {
       if (!this.isAdd(id)) {
         const list = this.getItem();
         this.setItem([...list, id]);
-        Api.getFund(id).then(data => {
+        Api.getFundList(id).then(data => {
           this.list.push(data);
         });
       }
