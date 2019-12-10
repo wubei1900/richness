@@ -30,6 +30,33 @@
         </div>
       </div>
     </div>
+    <div class="quotes" @click="collapse=!collapse">
+      <div class="time" :style="{'display': collapse || !time ? 'none' : 'flex'}">
+        行情信息&nbsp;&nbsp;
+        <span style="color: #999">更新于{{time}}</span>
+      </div>
+      <div
+        class="quotesItem"
+        v-for="(item, i) in quotes.slice(collapse ? current - 3 : 0, collapse ? current : quotes.length)"
+        :key="i"
+      >
+        <div>{{item.f14}}</div>
+        <div
+          :class="{red: item.f3 > 0, green: item.f3 < 0, gray: item.f3 === 0}"
+          :style="{ 'display': 'flex', 'flex-direction': collapse ? 'row' : 'column'}"
+        >
+          <span
+            style="margin-right: 5px"
+          >{{`${Number(item.f2).toFixed(2)} ${item.f3 > 0 ? '↑' : (item.f3 < 0 ? '↓' : '─') }`}}</span>
+          <div class="quotesAmp">
+            <span
+              :style="{'font-size': '10px', 'display': collapse ? 'none' : 'block', 'margin-right': '5px' }"
+            >{{`${item.f4 > 0 ? '+' : '-'}${item.f4}`}}</span>
+            <span style="font-size: 10px">{{`${Number(item.f3).toFixed(2)}%`}}</span>
+          </div>
+        </div>
+      </div>
+    </div>
     <section>
       <table>
         <thead>
@@ -46,7 +73,9 @@
             <td>{{i+1}}</td>
             <td>{{item.fundcode}}</td>
             <td class="ellipsis" :title="item.name">{{item.name}}</td>
-            <td :class="{red: item.gszzl > 0, green: item.gszzl < 0}">{{`${item.gszzl}%`}}</td>
+            <td
+              :class="{red: item.gszzl > 0, green: item.gszzl < 0, gray: item.gszzl === 0}"
+            >{{`${item.gszzl}%`}}</td>
             <td class="delete" @click="handleDelete(item.fundcode)">删除</td>
           </tr>
         </tbody>
@@ -70,16 +99,42 @@ export default {
       display: false,
       keyword: "",
       list: [],
+      quotes: [],
       searchlist: [],
-      loading: true
+      loading: true,
+      collapse: true,
+      current: 3,
+      time: ""
     };
   },
   methods: {
+    getUpdateTime() {
+      const now = new Date();
+      const h = now.getHours();
+      const m = now.getMinutes();
+      const s = now.getSeconds();
+      const setComplete = v => (v > 9 ? v : "0" + v);
+      if (h >= 15 || (h <= 9 && m < 25)) {
+        // clearInterval(this.interval);
+        // clearInterval(this.quotesInterval);
+        // this.current = 3;
+        return "15:00:00";
+      }
+      return `${setComplete(h)}:${setComplete(m)}:${setComplete(s)}`;
+    },
     async handleSyncFund() {
       this.loading = true;
       const datas = await this.getFundList();
+      let quotes = await Api.getQuoteCenter();
       this.loading = false;
-      this.list = JSON.parse(JSON.stringify(datas));
+      this.list = this.parseData(datas);
+      this.quotes = this.parseData(quotes.data.diff);
+      this.time = this.getUpdateTime();
+    },
+    handleSwitchQuotes() {
+      const len = this.quotes.length;
+      const current = (this.current % len) + 3;
+      this.current = current > len ? len : current;
     },
     getFundList() {
       return new Promise((resolve, reject) => {
@@ -112,7 +167,7 @@ export default {
             __name: { $set: this.brightKeyword(item.NAME) }
           })
         );
-        this.searchlist = JSON.parse(JSON.stringify(resultList));
+        this.searchlist = this.parseData(resultList);
         this.display = true;
       } else {
         this.display = false;
@@ -152,14 +207,22 @@ export default {
     },
     setItem(items) {
       localStorage.setItem("fundlist", JSON.stringify(items));
+    },
+    parseData(data) {
+      return JSON.parse(JSON.stringify(data));
+    },
+    handleSetInterval() {
+      this.interval = setInterval(this.handleSyncFund, 15000);
+      this.quotesInterval = setInterval(this.handleSwitchQuotes, 5000);
     }
   },
   mounted() {
     this.handleSyncFund();
-    this.interval = setInterval(this.handleSyncFund, 15000);
+    this.handleSetInterval();
   },
   destroyed() {
     clearInterval(this.interval);
+    clearInterval(this.quotesInterval);
   }
 };
 </script>
@@ -272,8 +335,39 @@ export default {
   color: green;
 }
 
+.list .gray {
+  color: #999999;
+}
+
+.list .time {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  padding: 5px 0 0 5px;
+}
+
+.list .quotes {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+  padding: 0px 10px;
+}
+
+.list .quotes .quotesItem {
+  margin: 5px 5px 0px 5px;
+  width: calc((100% - 30px) / 3);
+}
+
+.list .quotes .quotesItem .quotesAmp {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
 .list section {
-  margin-top: 10px;
+  margin-top: 5px;
   height: 100%;
 }
 
