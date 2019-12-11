@@ -5,6 +5,7 @@ import {
   BrowserWindow,
   Menu,
   Tray,
+  ipcMain
 } from 'electron'
 
 const path = require('path');
@@ -13,6 +14,8 @@ let mainWindow
 const winURL = process.env.NODE_ENV === 'development' ?
   `http://localhost:8088` :
   `file://${__dirname}/index.html`
+
+let appTray;
 
 function createWindow() {
   /**
@@ -24,7 +27,10 @@ function createWindow() {
     useContentSize: true,
     minWidth: 400,
     maxWidth: 400,
-    skipTaskbar: true
+    skipTaskbar: true,
+    webPreferences: {
+      nodeIntegration: true
+    }
   })
 
   mainWindow.loadURL(winURL)
@@ -43,13 +49,17 @@ function createWindow() {
     click: () => mainWindow.destroy()
   }];
   const trayIcon = path.join(__dirname, 'icons');
-  const appTray = new Tray(path.join(trayIcon, 'icon.ico'));
+  appTray = new Tray(path.join(trayIcon, 'icon.ico'));
   const contextMenu = Menu.buildFromTemplate(trayMenutemplate);
   appTray.setToolTip('richness');
   appTray.setContextMenu(contextMenu);
   appTray.on('click', () => {
     mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show()
     mainWindow.isVisible() ? mainWindow.setSkipTaskbar(false) : mainWindow.setSkipTaskbar(true);
+  });
+
+  ipcMain.on('setToolTip', (e, arg) => {
+    appTray.setToolTip(arg);
   });
 
   mainWindow.on('close', e => {

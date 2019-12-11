@@ -47,7 +47,7 @@
         >
           <span
             style="margin-right: 5px"
-          >{{`${Number(item.f2).toFixed(2)} ${item.f3 > 0 ? '↑' : (item.f3 < 0 ? '↓' : '─') }`}}</span>
+          >{{`${Number(item.f2).toFixed(2)} ${item.f3 &gt; 0 ? '↑' : (item.f3 &lt; 0 ? '↓' : '─') }`}}</span>
           <div class="quotesAmp">
             <span
               :style="{'font-size': '10px', 'display': collapse ? 'none' : 'block', 'margin-right': '5px' }"
@@ -93,6 +93,8 @@
 <script>
 import update from "immutability-helper";
 import * as Api from "@common/Api";
+import { ipcRenderer } from "electron";
+
 export default {
   data() {
     return {
@@ -130,6 +132,7 @@ export default {
       this.list = this.parseData(datas);
       this.quotes = this.parseData(quotes.data.diff);
       this.time = this.getUpdateTime();
+      this.sendIpcMsg();
     },
     handleSwitchQuotes() {
       const len = this.quotes.length;
@@ -214,6 +217,17 @@ export default {
     handleSetInterval() {
       this.interval = setInterval(this.handleSyncFund, 15000);
       this.quotesInterval = setInterval(this.handleSwitchQuotes, 5000);
+    },
+    sendIpcMsg() {
+      let msg = "";
+      const quotes = this.quotes;
+      const current = this.current;
+      quotes.slice(current - 3, current).forEach(item => {
+        msg += `${item.f14} ${Number(item.f2).toFixed(2)}${
+          item.f3 > 0 ? "↑" : item.f3 < 0 ? "↓" : "─"
+        } ${Number(item.f3).toFixed(2)}%\n`;
+      });
+      ipcRenderer.send("setToolTip", msg);
     }
   },
   mounted() {

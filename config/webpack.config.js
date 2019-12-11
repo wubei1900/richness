@@ -35,6 +35,7 @@ module.exports = {
             '@router': path.resolve(__dirname, '../src/renderer/router')
         }
     },
+    target: 'electron-renderer',
     module: {
         rules: [{
             test: /\.vue$/,
