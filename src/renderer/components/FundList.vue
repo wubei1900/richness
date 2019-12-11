@@ -223,9 +223,7 @@ export default {
       const quotes = this.quotes;
       const current = this.current;
       quotes.slice(current - 3, current).forEach(item => {
-        msg += `${item.f14} ${Number(item.f2).toFixed(2)}${
-          item.f3 > 0 ? "↑" : item.f3 < 0 ? "↓" : "─"
-        } ${Number(item.f3).toFixed(2)}%\n`;
+        msg += `${item.f14} ${Number(item.f2).toFixed(2)}${ item.f3 > 0 ? "↑" : item.f3 < 0 ? "↓" : "─" } ${Number(item.f3).toFixed(2)}%\n`;
       });
       ipcRenderer.send("setToolTip", msg);
     }
