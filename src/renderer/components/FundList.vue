@@ -30,34 +30,40 @@
         </div>
       </div>
     </div>
-    <div class="quotes" @click="collapse=!collapse">
-      <div class="time" :style="{'display': collapse || !time ? 'none' : 'flex'}">
-        行情信息&nbsp;&nbsp;
-        <span style="color: #999">更新于{{time}}</span>
-      </div>
+    <div class="time">
+      行情信息&nbsp;&nbsp;
+      <span style="color: #999">更新于{{time}}</span>
+    </div>
+    <div v-if="quotes.length" class="quotes" ref="quotes">
       <div
-        class="quotesItem"
-        v-for="(item, i) in quotes.slice(collapse ? current - 3 : 0, collapse ? current : quotes.length)"
-        :key="i"
+        v-for="(it, i) in [1, 2]"
+        :key="i === 0 ? ~~flag : ~~!flag"
+        :class="['quotesItem', {out: i === 0}]"
       >
-        <div>{{item.f14}}</div>
         <div
-          :class="{red: item.f3 > 0, green: item.f3 < 0, gray: item.f3 === 0}"
-          :style="{ 'display': 'flex', 'flex-direction': collapse ? 'row' : 'column'}"
+          class="item"
+          v-for="(item, j) in quotes.slice(i === 0 ? getPreNum(previous) : getPreNum(current), i === 0 ? previous : current)"
+          :key="j"
         >
-          <span
-            style="margin-right: 5px"
-          >{{`${Number(item.f2).toFixed(2)} ${item.f3 &gt; 0 ? '↑' : (item.f3 &lt; 0 ? '↓' : '─') }`}}</span>
-          <div class="quotesAmp">
+          <div>{{item.f14}}</div>
+          <div
+            :class="{red: item.f3 > 0, green: item.f3 < 0, gray: item.f3 === 0}"
+            :style="{ 'display': 'flex', 'flex-direction': 'column'}"
+          >
             <span
-              :style="{'font-size': '10px', 'display': collapse ? 'none' : 'block', 'margin-right': '5px' }"
-            >{{`${item.f4 > 0 ? '+' : '-'}${item.f4}`}}</span>
-            <span style="font-size: 10px">{{`${Number(item.f3).toFixed(2)}%`}}</span>
+              style="margin-right: 5px"
+            >{{`${Number(item.f2).toFixed(2)} ${item.f3 &gt; 0 ? '↑' : (item.f3 &lt; 0 ? '↓' : '─') }`}}</span>
+            <div class="quotesAmp">
+              <span
+                :style="{'font-size': '10px', 'display': 'block', 'margin-right': '5px' }"
+              >{{`${item.f4 > 0 ? '+' : ''}${item.f4}`}}</span>
+              <span style="font-size: 10px">{{`${Number(item.f3).toFixed(2)}%`}}</span>
+            </div>
           </div>
         </div>
       </div>
     </div>
-    <section>
+    <section v-if="list.length">
       <table>
         <thead>
           <tr>
@@ -79,14 +85,12 @@
             <td class="delete" @click="handleDelete(item.fundcode)">删除</td>
           </tr>
         </tbody>
-        <tbody v-else class="empty">
-          <tr>
-            <td v-if="loading">加载中...</td>
-            <td v-else>未添加任何基金</td>
-          </tr>
-        </tbody>
       </table>
     </section>
+    <div v-else class="empty">
+      <span v-if="loading">加载中...</span>
+      <span v-else>未添加任何基金</span>
+    </div>
   </div>
 </template>
 
@@ -94,6 +98,8 @@
 import update from "immutability-helper";
 import * as Api from "@common/Api";
 import { ipcRenderer } from "electron";
+
+const NUM = 3;
 
 export default {
   data() {
@@ -104,8 +110,9 @@ export default {
       quotes: [],
       searchlist: [],
       loading: true,
-      collapse: true,
-      current: 3,
+      previous: 0,
+      current: 0,
+      flag: false,
       time: ""
     };
   },
@@ -119,12 +126,11 @@ export default {
       if (h >= 15 || (h <= 9 && m < 25)) {
         // clearInterval(this.interval);
         // clearInterval(this.quotesInterval);
-        // this.current = 3;
-        return "15:00:00";
+        return "15:00:00  [闭市]";
       }
       return `${setComplete(h)}:${setComplete(m)}:${setComplete(s)}`;
     },
-    async handleSyncFund() {
+    async handleSyncFund(mounted = false) {
       this.loading = true;
       const datas = await this.getFundList();
       let quotes = await Api.getQuoteCenter();
@@ -133,11 +139,27 @@ export default {
       this.quotes = this.parseData(quotes.data.diff);
       this.time = this.getUpdateTime();
       this.sendIpcMsg();
+      if (mounted) {
+        const len = this.quotes.length;
+        this.previous = len;
+        this.current = len <= NUM ? len : NUM;
+      }
+      return Promise.resolve();
+    },
+    getPreNum(num) {
+      const mod = num % NUM;
+      return mod ? num - mod : num - NUM;
     },
     handleSwitchQuotes() {
       const len = this.quotes.length;
-      const current = (this.current % len) + 3;
-      this.current = current > len ? len : current;
+      this.flag = !this.flag;
+      this.previous = this.current;
+      this.current =
+        (this.current + NUM) % len < NUM
+          ? len
+          : (this.current + NUM) % len === NUM
+          ? NUM
+          : this.current + NUM;
     },
     getFundList() {
       return new Promise((resolve, reject) => {
@@ -160,6 +182,9 @@ export default {
       });
     },
     async handleSearch() {
+      if (this.loading) {
+        return;
+      }
       const keyword = this.keyword;
       const value = keyword.trim();
       if (value.length) {
@@ -214,23 +239,27 @@ export default {
     parseData(data) {
       return JSON.parse(JSON.stringify(data));
     },
-    handleSetInterval() {
-      this.interval = setInterval(this.handleSyncFund, 15000);
-      this.quotesInterval = setInterval(this.handleSwitchQuotes, 5000);
+    setQuotesInterval() {
+      if (this.previous !== this.current) {
+        this.quotesInterval = setInterval(this.handleSwitchQuotes, 5000);
+      }
     },
     sendIpcMsg() {
       let msg = "";
       const quotes = this.quotes;
       const current = this.current;
-      quotes.slice(current - 3, current).forEach(item => {
-        msg += `${item.f14} ${Number(item.f2).toFixed(2)}${ item.f3 > 0 ? "↑" : item.f3 < 0 ? "↓" : "─" } ${Number(item.f3).toFixed(2)}%\n`;
+      quotes.slice(this.getPreNum(current), current).forEach(item => {
+        msg += `${item.f14} ${Number(item.f2).toFixed(2)}${
+          item.f3 > 0 ? "↑" : item.f3 < 0 ? "↓" : "─"
+        } ${Number(item.f3).toFixed(2)}%\n`;
       });
       ipcRenderer.send("setToolTip", msg);
     }
   },
-  mounted() {
-    this.handleSyncFund();
-    this.handleSetInterval();
+  async mounted() {
+    await this.handleSyncFund(true);
+    this.setQuotesInterval();
+    this.interval = setInterval(this.handleSyncFund, 15000);
   },
   destroyed() {
     clearInterval(this.interval);
@@ -355,31 +384,46 @@ export default {
   width: 100%;
   display: flex;
   justify-content: flex-start;
-  padding: 5px 0 0 5px;
+  padding-top: 5px;
+  padding-left: 10px;
 }
 
 .list .quotes {
   display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: center;
+  flex-direction: column;
   width: 100%;
+  height: 50px;
+  min-height: 50px;
+  overflow: hidden;
   padding: 0px 10px;
 }
 
 .list .quotes .quotesItem {
-  margin: 5px 5px 0px 5px;
-  width: calc((100% - 30px) / 3);
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 4px 0px;
+  height: 100%;
 }
 
-.list .quotes .quotesItem .quotesAmp {
+.list .quotes .out {
+  margin-top: -50px;
+  transition: margin-top 1s;
+}
+
+.list .quotes .item {
+  margin: 0px 2px;
+  width: calc((100% - 24px) / 3);
+}
+
+.list .quotes .item .quotesAmp {
   display: flex;
   flex-direction: row;
   align-items: center;
 }
 
 .list section {
-  margin-top: 5px;
   height: 100%;
 }
 
@@ -397,15 +441,13 @@ export default {
   height: 100%;
 }
 
-.list .empty tr {
-  display: table;
-  margin-top: 10px;
-  width: 100%;
+.list .empty {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
   font-size: 15px;
-}
-
-.list .empty tr td {
-  border: none;
+  margin-top: 10px;
+  flex: 1;
 }
 
 .list table thead td {
