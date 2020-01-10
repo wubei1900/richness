@@ -30,7 +30,7 @@
         </div>
       </div>
     </div>
-    <div class="time">
+    <div class="time" v-if="time">
       行情信息&nbsp;&nbsp;
       <span style="color: #999">更新于{{time}}</span>
     </div>
