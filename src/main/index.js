@@ -5,7 +5,8 @@ import {
   BrowserWindow,
   Menu,
   Tray,
-  ipcMain
+  ipcMain,
+  globalShortcut
 } from 'electron'
 
 const path = require('path');
@@ -53,9 +54,12 @@ function createWindow() {
   const contextMenu = Menu.buildFromTemplate(trayMenutemplate);
   appTray.setToolTip('richness');
   appTray.setContextMenu(contextMenu);
-  appTray.on('click', () => {
+  const setWindowStatus = () => {
     mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show()
     mainWindow.isVisible() ? mainWindow.setSkipTaskbar(false) : mainWindow.setSkipTaskbar(true);
+  }
+  appTray.on('click', () => {
+    setWindowStatus();
   });
 
   ipcMain.on('setToolTip', (e, arg) => {
@@ -71,11 +75,17 @@ function createWindow() {
   mainWindow.on('show', () => appTray.setHighlightMode('always'));
 
   mainWindow.on('hide', () => appTray.setHighlightMode('never'));
+
+  //快捷键
+  globalShortcut.register('Alt+Q', () => {
+    setWindowStatus();
+  })
 }
 
 const gotTheLock = app.requestSingleInstanceLock()
 
 if (!gotTheLock) {
+  globalShortcut.unregister('Alt+Q')
   app.quit()
 } else {
   app.on('second-instance', (event, commandLine, workingDirectory) => {
@@ -89,6 +99,7 @@ if (!gotTheLock) {
 
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
+      globalShortcut.unregister('Alt+Q')
       app.quit()
     }
   })
