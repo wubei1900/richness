@@ -213,7 +213,8 @@ export default {
       });
     },
     setSearchWordList(str) {
-      if (!this.isAdd("searchWordList", str)) {
+      const searchWordList = this.getItem("searchWordList");
+      if (searchWordList.indexOf(str) === -1) {
         this.setItem("searchWordList", [...searchWordList, str]);
       }
     },
@@ -255,8 +256,8 @@ export default {
       }
     },
     handleAddFund(id) {
-      if (!this.isAdd("fundlist", id)) {
-        const fundList = this.getItem("fundlist");
+      const fundList = this.getItem("fundlist");
+      if (fundList.indexOf(id) === -1) {
         this.setItem("fundlist", [...fundList, id]);
         Api.getFundList(id).then(data => {
           this.fundList.push(data);
