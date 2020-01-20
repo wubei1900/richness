@@ -250,6 +250,7 @@ export default {
       if (key == "fundlist") {
         this.fundList = this.fundList.filter(f => f.fundcode !== value);
       } else {
+        this.$refs.input.focus();
         this.searchWordList = this.searchWordList.filter(
           f => f.value !== value
         );
