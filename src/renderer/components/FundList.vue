@@ -1,5 +1,5 @@
 <template>
-  <div class="list" @click="display=false">
+  <div class="list" @click="display=false;searchWordList=[]">
     <div class="searchBox">
       <div class="search">
         <input
@@ -7,10 +7,20 @@
           ref="input"
           placeholder="请输入基金代码、名称或简写"
           v-model="keyword"
-          @input="display=false"
-          @keyup.enter="handleSearch"
+          @click.stop
+          @focus="handleInput(keyword)"
+          @input="handleInput(keyword)"
+          @keyup.enter="handleSearch(keyword)"
         />
-        <span class="searchBtn" @click="handleSearch">搜索</span>
+        <span class="searchBtn" @click="handleSearch(keyword)">搜索</span>
+      </div>
+      <div class="searchList" v-show="!display && searchWordList.length" @click.stop>
+        <ul>
+          <li v-for="(item, i) in searchWordList" :key="i" @click="handleSearch(item.value)">
+            <span v-html="item.__value"></span>
+            <span class="Delete" @click.stop @click="handleDelete('searchWordList', item.value)">X</span>
+          </li>
+        </ul>
       </div>
       <div class="searchList" v-show="display" @click.stop>
         <ul v-if="!!searchlist.length">
@@ -19,7 +29,11 @@
               <span v-html="item.__name"></span>
               <span class="ellipsis" :title="item.NAME" v-html="item.__code"></span>
             </div>
-            <span class="add" v-if="!isAdd(item.CODE)" @click="handleAdd(item.CODE)">添加</span>
+            <span
+              class="add"
+              v-if="!isAdd('fundlist', item.CODE)"
+              @click="handleAddFund(item.CODE)"
+            >添加</span>
             <span class="disabled" v-else>已添加</span>
           </li>
         </ul>
@@ -63,7 +77,7 @@
         </div>
       </div>
     </div>
-    <section v-if="list.length">
+    <section v-if="fundList.length">
       <table>
         <thead>
           <tr>
@@ -74,15 +88,15 @@
             <td>操作</td>
           </tr>
         </thead>
-        <tbody v-if="list.length">
-          <tr v-for="(item, i) in list" :key="i">
+        <tbody v-if="fundList.length">
+          <tr v-for="(item, i) in fundList" :key="i">
             <td>{{i+1}}</td>
             <td>{{item.fundcode}}</td>
             <td class="ellipsis" :title="item.name">{{item.name}}</td>
             <td
               :class="{red: item.gszzl > 0, green: item.gszzl < 0, gray: item.gszzl === 0}"
             >{{`${item.gszzl}%`}}</td>
-            <td class="delete" @click="handleDelete(item.fundcode)">删除</td>
+            <td class="delete" @click="handleDelete('fundlist', item.fundcode)">删除</td>
           </tr>
         </tbody>
       </table>
@@ -106,14 +120,15 @@ export default {
     return {
       display: false,
       keyword: "",
-      list: [],
+      fundList: [],
       quotes: [],
       searchlist: [],
       loading: true,
       previous: 0,
       current: 0,
       flag: false,
-      time: ""
+      time: "",
+      searchWordList: []
     };
   },
   methods: {
@@ -135,7 +150,7 @@ export default {
       const datas = await this.getFundList();
       let quotes = await Api.getQuoteCenter();
       this.loading = false;
-      this.list = this.parseData(datas);
+      this.fundList = this.parseData(datas);
       this.quotes = this.parseData(quotes.data.diff);
       this.time = this.getUpdateTime();
       this.sendIpcMsg();
@@ -163,14 +178,14 @@ export default {
     },
     getFundList() {
       return new Promise((resolve, reject) => {
-        const list = this.getItem();
+        const fundList = this.getItem("fundlist");
         const datas = [];
         const func = async index => {
-          if (index >= list.length) {
+          if (index >= fundList.length) {
             return resolve(datas);
           }
           try {
-            const data = await Api.getFundList(list[index]);
+            const data = await Api.getFundList(fundList[index]);
             datas.push(data);
             func(index + 1);
           } catch (error) {
@@ -181,11 +196,34 @@ export default {
         func(0);
       });
     },
-    async handleSearch() {
+    handleInput(keyword) {
+      this.searchWordList = [];
+      if (!keyword.trim().length) {
+        return;
+      }
+      this.display = false;
+      const searchWordList = this.getItem("searchWordList");
+      searchWordList.forEach(str => {
+        if (str.indexOf(keyword) !== -1) {
+          this.searchWordList.push({
+            __value: this.brightKeyword(str),
+            value: str
+          });
+        }
+      });
+    },
+    setSearchWordList(str) {
+      if (!this.isAdd("searchWordList", str)) {
+        this.setItem("searchWordList", [...searchWordList, str]);
+      }
+    },
+    async handleSearch(keyword) {
       if (this.loading) {
         return;
       }
-      const keyword = this.keyword;
+      this.$refs.input.focus();
+      this.keyword = keyword;
+      this.setSearchWordList(keyword);
       const value = keyword.trim();
       if (value.length) {
         const data = await Api.fundSearch({ key: keyword, m: 1 });
@@ -200,26 +238,34 @@ export default {
       } else {
         this.display = false;
         this.searchlist = [];
-        this.$refs.input.focus();
       }
     },
-    handleDelete(id) {
-      const list = this.getItem();
-      this.setItem(list.filter(f => f !== id));
-      this.list = this.list.filter(f => f.fundcode !== id);
+    handleDelete(key, value) {
+      const list = this.getItem(key);
+      this.setItem(
+        key,
+        list.filter(f => f !== value)
+      );
+      if (key == "fundlist") {
+        this.fundList = this.fundList.filter(f => f.fundcode !== value);
+      } else {
+        this.searchWordList = this.searchWordList.filter(
+          f => f.value !== value
+        );
+      }
     },
-    handleAdd(id) {
-      if (!this.isAdd(id)) {
-        const list = this.getItem();
-        this.setItem([...list, id]);
+    handleAddFund(id) {
+      if (!this.isAdd("fundlist", id)) {
+        const fundList = this.getItem("fundlist");
+        this.setItem("fundlist", [...fundList, id]);
         Api.getFundList(id).then(data => {
-          this.list.push(data);
+          this.fundList.push(data);
         });
       }
     },
-    isAdd(id) {
-      const list = this.getItem();
-      const index = list.indexOf(id);
+    isAdd(key, value) {
+      const fundList = this.getItem(key);
+      const index = fundList.indexOf(value);
       return !!~index;
     },
     brightKeyword(value) {
@@ -230,11 +276,11 @@ export default {
       }
       return value;
     },
-    getItem() {
-      return JSON.parse(localStorage.getItem("fundlist")) || [];
+    getItem(key) {
+      return JSON.parse(localStorage.getItem(key)) || [];
     },
-    setItem(items) {
-      localStorage.setItem("fundlist", JSON.stringify(items));
+    setItem(key, items) {
+      localStorage.setItem(key, JSON.stringify(items));
     },
     parseData(data) {
       return JSON.parse(JSON.stringify(data));
@@ -345,6 +391,22 @@ export default {
   height: 35px;
 }
 
+.list > .searchBox > .searchList .Delete {
+  display: none;
+  color: #ffffff;
+  border-radius: 50%;
+  background: red;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.list > .searchBox > .searchList li:hover .Delete {
+  display: flex;
+}
+
 .list > .searchBox > .searchList .notFound {
   height: 30px;
   line-height: 30px;
@@ -359,6 +421,7 @@ export default {
   display: flex;
   flex-direction: center;
   align-items: center;
+  justify-content: space-between;
 }
 
 .list > .searchBox > .searchList li div > span {
