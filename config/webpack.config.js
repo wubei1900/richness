@@ -71,7 +71,7 @@ module.exports = {
         new HtmlWebpackPlugin({
             title: 'richness',
             filename: 'index.html',
-            template: path.resolve(__dirname, '../src/template.html'),
+            template: path.resolve(__dirname, '../template.html'),
             inject: false
         }),
         new HappyPack({
