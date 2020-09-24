@@ -35,6 +35,7 @@
               @click="handleAddFund(item.CODE)"
             >添加</span>
             <span class="disabled" v-else>已添加</span>
+            <span class="Delete" v-show="isAdd('fundlist', item.CODE)" @click.stop @click="handleDelete('fundlist', item.CODE)">X</span>
           </li>
         </ul>
         <div v-else class="notFound">

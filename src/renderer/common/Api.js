@@ -21,7 +21,7 @@
  function jsonp(url, params) {
      return new Promise((resolve, reject) => {
          JSONP(url, params, (err, data) => {
-             if (err) {
+             if (err || !data) {
                  reject(`jsonp ${url}：${err} \n`);
              } else if (data.ErrCode) {
                  reject(`jsonp ${url}：code(${data.ErrCode})，${data.ErrMsg} \n`);
