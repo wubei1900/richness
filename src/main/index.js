@@ -49,7 +49,7 @@ function createWindow() {
     label: '退出',
     click: () => mainWindow.destroy()
   }];
-  const trayIcon = path.join(__dirname, 'icons');
+  const trayIcon = path.join(__dirname, '../../', 'icons');
   appTray = new Tray(path.join(trayIcon, 'icon.ico'));
   const contextMenu = Menu.buildFromTemplate(trayMenutemplate);
   appTray.setToolTip('richness');
